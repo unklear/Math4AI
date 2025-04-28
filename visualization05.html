@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机森林可视化</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .step-container {
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .step-number {
+            position: absolute;
+            left: -40px;
+            top: 0;
+            width: 30px;
+            height: 30px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .forest-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .tree {
+            width: 180px;
+            height: 220px;
+            position: relative;
+            margin-bottom: 40px;
+        }
+        
+        .tree-svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .tree-label {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .prediction {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        
+        .prediction-box {
+            width: 30px;
+            height: 30px;
+            margin: 0 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .ensemble {
+            background-color: #f1f1f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .feature-importance {
+            height: 250px;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .sample-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .sample {
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 120px;
+            text-align: center;
+        }
+        
+        .sample.selected {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .node {
+            fill: #fff;
+            stroke: #000;
+            stroke-width: 1px;
+        }
+        
+        .link {
+            fill: none;
+            stroke: #555;
+            stroke-width: 1.5px;
+        }
+        
+        .node-text {
+            font-size: 10px;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+        
+        .leaf-node {
+            fill: #e74c3c;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .slider {
+            width: 300px;
+            margin: 0 10px;
+        }
+        
+        .feature-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .feature-bar-container {
+            flex-grow: 1;
+            height: 20px;
+            background-color: #eee;
+            margin: 0 10px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .feature-bar {
+            height: 100%;
+            background-color: #3498db;
+        }
+        
+        .feature-name {
+            width: 180px;
+        }
+        
+        .feature-value {
+            width: 70px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 4px;
+            padding: 2px 4px;
+        }
+        
+        .feature-value.selected {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .feature-value.not-selected {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .pros-cons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .pros, .cons {
+            flex: 1;
+            min-width: 300px;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .pros h3 {
+            color: #2ecc71;
+        }
+        
+        .cons h3 {
+            color: #e74c3c;
+        }
+        
+        .pros ul, .cons ul {
+            padding-left: 20px;
+        }
+        
+        .pros li, .cons li {
+            margin-bottom: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .tree {
+                width: 150px;
+                height: 180px;
+            }
+            
+            .step-number {
+                position: static;
+                margin-right: 10px;
+                display: inline-flex;
+            }
+            
+            .sample {
+                width: 100px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Random Forest Visualization</h1>
+        <p>This visualization demonstrates how a Random Forest works using a diabetes dataset, including training, prediction, and integrating multiple decision trees.</p>
+    </div>
+
+    <div class="container step-container">
+        <div class="step-number">1</div>
+        <h2>Dataset Overview</h2>
+        <p>We use a diabetes dataset containing the following features: Pregnancies, Glucose, Blood Pressure, Skin Thickness, Insulin, BMI, Diabetes Pedigree Function, Age, and Diagnosis Result (0 for no, 1 for yes).</p>
+        <div id="feature-distribution" class="chart-container"></div>
+    </div>
+
+    <div class="container step-container">
+        <div class="step-number">2</div>
+        <h2>Random Sampling</h2>
+        <p>The first critical step of Random Forest is <strong>Bootstrap Sampling</strong> — randomly sampling from the original training set with replacement to create subsets for each decision tree.</p>
+        <button id="resample-btn" class="btn">Resample</button>
+        <div id="sample-visualization" class="sample-container"></div>
+    </div>
+
+    <div class="container step-container">
+        <div class="step-number">3</div>
+        <h2>Random Feature Selection</h2>
+        <p>At each node, the algorithm randomly selects a subset of features to consider, which increases diversity among the trees.</p>
+        <div id="feature-selection">
+            <div class="feature-row">
+                <div class="feature-name">Pregnancies</div>
+                <div class="feature-bar-container">
+                    <div class="feature-bar" style="width: 70%;"></div>
+                </div>
+                <div class="feature-value selected">Selected</div>
+            </div>
+            <div class="feature-row">
+                <div class="feature-name">Glucose</div>
+                <div class="feature-bar-container">
+                    <div class="feature-bar" style="width: 90%;"></div>
+                </div>
+                <div class="feature-value selected">Selected</div>
+            </div>
+            <div class="feature-row">
+                <div class="feature-name">Blood Pressure</div>
+                <div class="feature-bar-container">
+                    <div class="feature-bar" style="width: 10%;"></div>
+                </div>
+                <div class="feature-value not-selected">Not Selected</div>
+            </div>
+            <div class="feature-row">
+                <div class="feature-name">BMI</div>
+                <div class="feature-bar-container">
+                    <div class="feature-bar" style="width: 85%;"></div>
+                </div>
+                <div class="feature-value selected">Selected</div>
+            </div>
+            <div class="feature-row">
+                <div class="feature-name">Age</div>
+                <div class="feature-bar-container">
+                    <div class="feature-bar" style="width: 65%;"></div>
+                </div>
+                <div class="feature-value selected">Selected</div>
+            </div>
+        </div>
+        <button id="reselect-features-btn" class="btn">Reselect Features</button>
+    </div>
+
+    <div class="container step-container">
+        <div class="step-number">4</div>
+        <h2>Building Multiple Decision Trees</h2>
+        <p>Random Forest builds multiple decision trees simultaneously, each trained on different subsets of data and features. These trees may have significantly different structures.</p>
+        <div class="forest-container" id="forest-visualization"></div>
+    </div>
+
+    <div class="container step-container">
+        <div class="step-number">5</div>
+        <h2>Prediction Process for a Test Sample</h2>
+        <p>Here is a test sample; we will demonstrate how it is predicted by each decision tree.</p>
+        <div id="test-sample-details">
+            <p>Test Sample: Pregnancies=6, Glucose=148, Blood Pressure=72, Skin Thickness=35, Insulin=0, BMI=33.6, Diabetes Pedigree Function=0.627, Age=50</p>
+        </div>
+        <div id="prediction-visualization"></div>
+        <button id="new-sample-btn" class="btn">Generate New Sample</button>
+    </div>
+
+    <div class="container step-container">
+        <div class="step-number">6</div>
+        <h2>Ensemble Decision</h2>
+        <p>Random Forest aggregates the predictions from individual decision trees through <strong>majority voting</strong> (for classification) or <strong>averaging</strong> (for regression) to obtain the final result.</p>
+        <div id="ensemble-visualization" class="ensemble">
+            <h3>Voting Results</h3>
+            <div id="voting-result"></div>
+            <div id="final-prediction"></div>
+        </div>
+    </div>
+
+    <div class="container step-container">
+        <div class="step-number">7</div>
+        <h2>Feature Importance</h2>
+        <p>Random Forest evaluates the importance of each feature, helping us understand which factors are most crucial in diabetes development.</p>
+        <div id="feature-importance" class="feature-importance"></div>
+    </div>
+
+    <div class="container">
+        <h2>Interactive Experiment</h2>
+        <p>Adjust the parameters below to explore how they affect the Random Forest's performance:</p>
+        <div class="slider-container">
+            <span>Number of Trees:</span>
+            <input type="range" min="1" max="10" value="5" class="slider" id="tree-count-slider">
+            <span id="tree-count-value">5</span>
+        </div>
+        <div class="slider-container">
+            <span>Maximum Depth per Tree:</span>
+            <input type="range" min="1" max="5" value="3" class="slider" id="tree-depth-slider">
+            <span id="tree-depth-value">3</span>
+        </div>
+        <div class="slider-container">
+            <span>Feature Sampling Ratio:</span>
+            <input type="range" min="10" max="100" value="70" class="slider" id="feature-ratio-slider">
+            <span id="feature-ratio-value">70%</span>
+        </div>
+        <button id="update-forest-btn" class="btn">Update Forest</button>
+        <div id="model-performance"></div>
+    </div>
+
+    <div class="container">
+        <h2>Pros and Cons of Random Forest</h2>
+        <div class="pros-cons">
+            <div class="pros">
+                <h3>Advantages</h3>
+                <ul>
+                    <li><strong>High Accuracy:</strong> Integrating multiple decision trees generally yields higher predictive accuracy than a single tree.</li>
+                    <li><strong>Resistance to Overfitting:</strong> Randomness in sampling and feature selection effectively prevents overfitting.</li>
+                    <li><strong>Robustness:</strong> Performs well against noise and outliers.</li>
+                    <li><strong>Feature Importance Evaluation:</strong> Automatically assesses feature importance, aiding feature selection.</li>
+                    <li><strong>Handles High-Dimensional Data:</strong> Performs well even with many features.</li>
+                    <li><strong>Captures Nonlinear Relationships:</strong> Effectively models complex feature interactions.</li>
+                    <li><strong>Highly Adaptive:</strong> Achieves strong performance with minimal hyperparameter tuning.</li>
+                </ul>
+            </div>
+            <div class="cons">
+                <h3>Disadvantages</h3>
+                <ul>
+                    <li><strong>Black-Box Nature:</strong> Although a single decision tree is interpretable, a forest of trees is much harder to explain.</li>
+                    <li><strong>High Computational Cost:</strong> Training many trees requires substantial resources and time.</li>
+                    <li><strong>Large Storage Requirement:</strong> The final model is larger and consumes more memory.</li>
+                    <li><strong>Bias Toward Multiclass Features:</strong> Slight preference for features with more distinct values.</li>
+                    <li><strong>Insensitive to Rare Cases:</strong> Majority voting may overlook rare but important instances.</li>
+                    <li><strong>Not Ideal for Simple Linear Relationships:</strong> Linear models might be more suitable when data follows simple linear trends.</li>
+                    <li><strong>Slow in Real-Time Prediction:</strong> Not ideal where fast predictions are critical.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // 模拟数据集
+        const rawData = [
+            {pregnancies: 6, glucose: 148, bloodPressure: 72, skinThickness: 35, insulin: 0, bmi: 33.6, dpf: 0.627, age: 50, outcome: 1},
+            {pregnancies: 1, glucose: 85, bloodPressure: 66, skinThickness: 29, insulin: 0, bmi: 26.6, dpf: 0.351, age: 31, outcome: 0},
+            {pregnancies: 8, glucose: 183, bloodPressure: 64, skinThickness: 0, insulin: 0, bmi: 23.3, dpf: 0.672, age: 32, outcome: 1},
+            {pregnancies: 1, glucose: 89, bloodPressure: 66, skinThickness: 23, insulin: 94, bmi: 28.1, dpf: 0.167, age: 21, outcome: 0},
+            {pregnancies: 0, glucose: 137, bloodPressure: 40, skinThickness: 35, insulin: 168, bmi: 43.1, dpf: 2.288, age: 33, outcome: 1},
+            {pregnancies: 5, glucose: 116, bloodPressure: 74, skinThickness: 0, insulin: 0, bmi: 25.6, dpf: 0.201, age: 30, outcome: 0},
+            {pregnancies: 3, glucose: 78, bloodPressure: 50, skinThickness: 32, insulin: 88, bmi: 31, dpf: 0.248, age: 26, outcome: 1},
+            {pregnancies: 10, glucose: 115, bloodPressure: 0, skinThickness: 0, insulin: 0, bmi: 35.3, dpf: 0.134, age: 29, outcome: 0},
+            {pregnancies: 2, glucose: 197, bloodPressure: 70, skinThickness: 45, insulin: 543, bmi: 30.5, dpf: 0.158, age: 53, outcome: 1},
+            {pregnancies: 8, glucose: 125, bloodPressure: 96, skinThickness: 0, insulin: 0, bmi: 0, dpf: 0.232, age: 54, outcome: 1},
+            // 更多数据...
+        ];
+        
+        // 特征名称
+        const featureNames = ['怀孕次数', '血糖', '血压', '皮肤厚度', '胰岛素', 'BMI', '糖尿病家族史', '年龄'];
+        
+        // 数据可视化
+        function visualizeFeatureDistribution() {
+            const margin = {top: 40, right: 30, bottom: 80, left: 60};
+            const width = document.getElementById('feature-distribution').offsetWidth - margin.left - margin.right;
+            const height = 300 - margin.top - margin.bottom;
+            
+            const svg = d3.select('#feature-distribution')
+                .append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            
+            // 计算每个特征的平均值
+            const averages = featureNames.map((feature, index) => {
+                const key = Object.keys(rawData[0])[index];
+                const avg = d3.mean(rawData, d => d[key]);
+                return { feature, value: avg };
+            });
+            
+            // X轴
+            const x = d3.scaleBand()
+                .domain(averages.map(d => d.feature))
+                .range([0, width])
+                .padding(0.2);
+            
+            svg.append('g')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .selectAll('text')
+                .attr('transform', 'translate(-10,0)rotate(-45)')
+                .style('text-anchor', 'end');
+            
+            // Y轴
+            const maxValue = d3.max(averages, d => d.value) * 1.2;
+            const y = d3.scaleLinear()
+                .domain([0, maxValue])
+                .range([height, 0]);
+            
+            svg.append('g')
+                .call(d3.axisLeft(y));
+            
+            // 添加标题
+            svg.append('text')
+                .attr('x', width / 2)
+                .attr('y', -10)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '16px')
+                .text('特征平均值分布');
+            
+            // 颜色比例尺
+            const color = d3.scaleOrdinal()
+                .domain(featureNames)
+                .range(d3.schemeCategory10);
+            
+            // 添加柱状图
+            svg.selectAll('rect')
+                .data(averages)
+                .enter()
+                .append('rect')
+                .attr('x', d => x(d.feature))
+                .attr('y', d => y(d.value))
+                .attr('width', x.bandwidth())
+                .attr('height', d => height - y(d.value))
+                .attr('fill', d => color(d.feature))
+                .attr('rx', 4)
+                .attr('ry', 4);
+            
+            // 添加值标签
+            svg.selectAll('text.value')
+                .data(averages)
+                .enter()
+                .append('text')
+                .attr('class', 'value')
+                .attr('x', d => x(d.feature) + x.bandwidth() / 2)
+                .attr('y', d => y(d.value) - 5)
+                .attr('text-anchor', 'middle')
+                .text(d => d.value.toFixed(1));
+        }
+        
+        // 可视化Bootstrap抽样
+        function visualizeBootstrapSampling() {
+            const sampleContainer = document.getElementById('sample-visualization');
+            sampleContainer.innerHTML = '';
+            
+            // 显示原始数据
+            for (let i = 0; i < 10; i++) {
+                const div = document.createElement('div');
+                div.className = 'sample';
+                div.textContent = `样本 ${i+1}`;
+                div.id = `sample-${i}`;
+                sampleContainer.appendChild(div);
+            }
+            
+            // 随机抽样
+            for (let i = 0; i < 15; i++) {
+                const randomIndex = Math.floor(Math.random() * 10);
+                const sample = document.getElementById(`sample-${randomIndex}`);
+                sample.classList.add('selected');
+            }
+        }
+        
+        // 可视化特征随机选择
+        function visualizeFeatureSelection() {
+            const featureSelectionDiv = document.getElementById('feature-selection');
+            featureSelectionDiv.innerHTML = '';
+            
+            featureNames.forEach(feature => {
+                const randomValue = Math.random();
+                const selected = randomValue > 0.3;
+                
+                const featureRow = document.createElement('div');
+                featureRow.className = 'feature-row';
+                
+                const featureName = document.createElement('div');
+                featureName.className = 'feature-name';
+                featureName.textContent = feature;
+                
+                const barContainer = document.createElement('div');
+                barContainer.className = 'feature-bar-container';
+                
+                const bar = document.createElement('div');
+                bar.className = 'feature-bar';
+                bar.style.width = `${randomValue * 100}%`;
+                
+                const featureValue = document.createElement('div');
+                featureValue.className = selected ? 'feature-value selected' : 'feature-value not-selected';
+                featureValue.textContent = selected ? '选中' : '未选中';
+                
+                barContainer.appendChild(bar);
+                featureRow.appendChild(featureName);
+                featureRow.appendChild(barContainer);
+                featureRow.appendChild(featureValue);
+                
+                featureSelectionDiv.appendChild(featureRow);
+            });
+        }
+        
+        // 生成决策树
+        function generateTree() {
+            // 创建一个简单的决策树结构
+            return {
+                nodes: [
+                    // 示例节点
+                    { id: 0, type: 'root', feature: '血糖', value: 140, x: 90, y: 20 },
+                    { id: 1, type: 'internal', feature: 'BMI', value: 30, x: 45, y: 70 },
+                    { id: 2, type: 'internal', feature: '年龄', value: 45, x: 135, y: 70 },
+                    { id: 3, type: 'leaf', prediction: 0, x: 25, y: 120 },
+                    { id: 4, type: 'leaf', prediction: 1, x: 65, y: 120 },
+                    { id: 5, type: 'leaf', prediction: 1, x: 105, y: 120 },
+                    { id: 6, type: 'leaf', prediction: 0, x: 165, y: 120 }
+                ],
+                links: [
+                    { source: 0, target: 1, direction: 'left' },
+                    { source: 0, target: 2, direction: 'right' },
+                    { source: 1, target: 3, direction: 'left' },
+                    { source: 1, target: 4, direction: 'right' },
+                    { source: 2, target: 5, direction: 'left' },
+                    { source: 2, target: 6, direction: 'right' }
+                ],
+                predict: function() {
+                    // 随机预测，仅用于演示
+                    return Math.random() > 0.5 ? 1 : 0;
+                }
+            };
+        }
+        
+        // 可视化森林
+        function visualizeForest() {
+            const forestContainer = document.getElementById('forest-visualization');
+            forestContainer.innerHTML = '';
+            
+            const treeCount = parseInt(document.getElementById('tree-count-slider').value);
+            
+            for (let i = 0; i < treeCount; i++) {
+                const treeDiv = document.createElement('div');
+                treeDiv.className = 'tree';
+                treeDiv.id = `tree-${i}`;
+                
+                const treeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                treeSvg.setAttribute('class', 'tree-svg');
+                treeSvg.setAttribute('viewBox', '0 0 180 180');
+                
+                treeDiv.appendChild(treeSvg);
+                
+                const treeLabel = document.createElement('div');
+                treeLabel.className = 'tree-label';
+                treeLabel.textContent = `决策树 #${i+1}`;
+                treeDiv.appendChild(treeLabel);
+                
+                forestContainer.appendChild(treeDiv);
+                
+                // 绘制树
+                const tree = generateTree();
+                const svg = d3.select(`#tree-${i} svg`);
+                
+                // 绘制连接线
+                tree.links.forEach(link => {
+                    const source = tree.nodes.find(n => n.id === link.source);
+                    const target = tree.nodes.find(n => n.id === link.target);
+                    
+                    svg.append('path')
+                        .attr('class', 'link')
+                        .attr('d', `M${source.x},${source.y} C${source.x},${(source.y + target.y) / 2} ${target.x},${(source.y + target.y) / 2} ${target.x},${target.y}`);
+                });
+                
+                // 绘制节点
+                tree.nodes.forEach(node => {
+                    const g = svg.append('g')
+                        .attr('transform', `translate(${node.x}, ${node.y})`);
+                    
+                    g.append('circle')
+                        .attr('class', node.type === 'leaf' ? 'node leaf-node' : 'node')
+                        .attr('r', 15);
+                    
+                    if (node.type !== 'leaf') {
+                        g.append('text')
+                            .attr('class', 'node-text')
+                            .attr('dy', -2)
+                            .text(node.feature);
+                        
+                        g.append('text')
+                            .attr('class', 'node-text')
+                            .attr('dy', 8)
+                            .text(`≥ ${node.value}`);
+                    } else {
+                        g.append('text')
+                            .attr('class', 'node-text')
+                            .attr('dy', 4)
+                            .text(node.prediction === 1 ? '阳性' : '阴性');
+                    }
+                });
+            }
+        }
+        
+        // 可视化预测过程
+        function visualizePrediction() {
+            const predictionContainer = document.getElementById('prediction-visualization');
+            predictionContainer.innerHTML = '';
+            
+            const treeCount = parseInt(document.getElementById('tree-count-slider').value);
+            const predictions = [];
+            
+            for (let i = 0; i < treeCount; i++) {
+                const prediction = Math.random() > 0.5 ? 1 : 0;
+                predictions.push(prediction);
+                
+                const predictionDiv = document.createElement('div');
+                predictionDiv.className = 'prediction';
+                
+                const treeLabel = document.createElement('div');
+                treeLabel.textContent = `决策树 #${i+1}:`;
+                treeLabel.style.marginRight = '10px';
+                
+                const predictionBox = document.createElement('div');
+                predictionBox.className = 'prediction-box';
+                predictionBox.style.backgroundColor = prediction === 1 ? '#e74c3c' : '#3498db';
+                predictionBox.textContent = prediction === 1 ? '是' : '否';
+                
+                predictionDiv.appendChild(treeLabel);
+                predictionDiv.appendChild(predictionBox);
+                
+                predictionContainer.appendChild(predictionDiv);
+            }
+            
+            // 可视化集成结果
+            visualizeEnsemble(predictions);
+        }
+        
+        // 可视化集成结果
+        function visualizeEnsemble(predictions) {
+            const votingResult = document.getElementById('voting-result');
+            const finalPrediction = document.getElementById('final-prediction');
+            
+            votingResult.innerHTML = '';
+            finalPrediction.innerHTML = '';
+            
+            // 计算每个类别的票数
+            const counts = predictions.reduce((acc, pred) => {
+                acc[pred] = (acc[pred] || 0) + 1;
+                return acc;
+            }, {});
+            
+            // 创建投票条形图
+            const margin = {top: 20, right: 20, bottom: 30, left: 40};
+            const width = 300 - margin.left - margin.right;
+            const height = 200 - margin.top - margin.bottom;
+            
+            const svg = d3.select('#voting-result')
+                .append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            
+            const categories = [0, 1];
+            const data = categories.map(category => ({
+                category: category === 1 ? '阳性' : '阴性',
+                count: counts[category] || 0
+            }));
+            
+            // X轴
+            const x = d3.scaleBand()
+                .domain(data.map(d => d.category))
+                .range([0, width])
+                .padding(0.3);
+            
+            svg.append('g')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+            
+            // Y轴
+            const maxCount = Math.max(...data.map(d => d.count));
+            const y = d3.scaleLinear()
+                .domain([0, maxCount])
+                .range([height, 0]);
+            
+            svg.append('g')
+                .call(d3.axisLeft(y).ticks(5));
+            
+            // 添加柱状图
+            svg.selectAll('rect')
+                .data(data)
+                .enter()
+                .append('rect')
+                .attr('x', d => x(d.category))
+                .attr('y', d => y(d.count))
+                .attr('width', x.bandwidth())
+                .attr('height', d => height - y(d.count))
+                .attr('fill', (d, i) => i === 0 ? '#3498db' : '#e74c3c')
+                .attr('rx', 4)
+                .attr('ry', 4);
+            
+            // 添加值标签
+            svg.selectAll('text.count')
+                .data(data)
+                .enter()
+                .append('text')
+                .attr('class', 'count')
+                .attr('x', d => x(d.category) + x.bandwidth() / 2)
+                .attr('y', d => y(d.count) - 5)
+                .attr('text-anchor', 'middle')
+                .text(d => d.count);
+            
+            // 最终预测结果
+            const finalResult = data[0].count > data[1].count ? '阴性（无糖尿病）' : '阳性（有糖尿病）';
+            const resultColor = data[0].count > data[1].count ? '#3498db' : '#e74c3c';
+            
+            finalPrediction.innerHTML = `
+                <h3>最终预测</h3>
+                <div style="font-size: 24px; font-weight: bold; color: ${resultColor}; margin: 20px 0;">
+                    ${finalResult}
+                </div>
+                <p>多数投票结果: ${data[0].count > data[1].count ? data[0].count : data[1].count}票 支持 ${finalResult}</p>
+            `;
+        }
+        
+        // 可视化特征重要性
+        function visualizeFeatureImportance() {
+            const importanceDiv = document.getElementById('feature-importance');
+            importanceDiv.innerHTML = '';
+            
+            // 模拟特征重要性数据
+            const importanceData = [
+                {feature: '血糖', importance: 0.28},
+                {feature: 'BMI', importance: 0.19},
+                {feature: '年龄', importance: 0.15},
+                {feature: '胰岛素', importance: 0.12},
+                {feature: '血压', importance: 0.10},
+                {feature: '怀孕次数', importance: 0.08},
+                {feature: '皮肤厚度', importance: 0.05},
+                {feature: '糖尿病家族史', importance: 0.03}
+            ];
+            
+            // 绘制条形图
+            const margin = {top: 20, right: 20, bottom: 50, left: 120};
+            const width = importanceDiv.offsetWidth - margin.left - margin.right;
+            const height = 250 - margin.top - margin.bottom;
+            
+            const svg = d3.select('#feature-importance')
+                .append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            
+            // 排序特征
+            importanceData.sort((a, b) => b.importance - a.importance);
+            
+            // X轴
+            const x = d3.scaleLinear()
+                .domain([0, d3.max(importanceData, d => d.importance)])
+                .range([0, width]);
+            
+            svg.append('g')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(x).ticks(5).tickFormat(d => (d*100).toFixed(0) + '%'));
+            
+            // X轴标题
+            svg.append('text')
+                .attr('x', width / 2)
+                .attr('y', height + 40)
+                .attr('text-anchor', 'middle')
+                .text('重要性');
+            
+            // Y轴
+            const y = d3.scaleBand()
+                .domain(importanceData.map(d => d.feature))
+                .range([0, height])
+                .padding(0.2);
+            
+            svg.append('g')
+                .call(d3.axisLeft(y));
+            
+            // 添加条形图
+            svg.selectAll('rect')
+                .data(importanceData)
+                .enter()
+                .append('rect')
+                .attr('x', 0)
+                .attr('y', d => y(d.feature))
+                .attr('width', d => x(d.importance))
+                .attr('height', y.bandwidth())
+                .attr('fill', '#2980b9')
+                .attr('rx', 4)
+                .attr('ry', 4);
+            
+            // 添加值标签
+            svg.selectAll('text.value')
+                .data(importanceData)
+                .enter()
+                .append('text')
+                .attr('class', 'value')
+                .attr('x', d => x(d.importance) + 5)
+                .attr('y', d => y(d.feature) + y.bandwidth() / 2)
+                .attr('dy', '0.35em')
+                .text(d => (d.importance * 100).toFixed(1) + '%');
+        }
+        
+        // 随机生成一个新的测试样本
+        function generateNewSample() {
+            const sampleDetailsDiv = document.getElementById('test-sample-details');
+            
+            // 随机生成一个样本
+            const sample = {
+                pregnancies: Math.floor(Math.random() * 15),
+                glucose: Math.floor(Math.random() * 150) + 70,
+                bloodPressure: Math.floor(Math.random() * 40) + 60,
+                skinThickness: Math.floor(Math.random() * 50),
+                insulin: Math.floor(Math.random() * 200),
+                bmi: (Math.random() * 20 + 20).toFixed(1),
+                dpf: (Math.random() * 2).toFixed(3),
+                age: Math.floor(Math.random() * 50) + 20
+            };
+            
+            sampleDetailsDiv.innerHTML = `
+                <p>测试样本：怀孕次数=${sample.pregnancies}, 血糖=${sample.glucose}, 血压=${sample.bloodPressure}, 
+                皮肤厚度=${sample.skinThickness}, 胰岛素=${sample.insulin}, BMI=${sample.bmi}, 
+                糖尿病家族史=${sample.dpf}, 年龄=${sample.age}</p>
+            `;
+            
+            // 更新预测可视化
+            visualizePrediction();
+        }
+        
+        // 更新滑块值显示
+        function updateSliderValues() {
+            document.getElementById('tree-count-value').textContent = document.getElementById('tree-count-slider').value;
+            document.getElementById('tree-depth-value').textContent = document.getElementById('tree-depth-slider').value;
+            document.getElementById('feature-ratio-value').textContent = document.getElementById('feature-ratio-slider').value + '%';
+        }
+        
+        // 事件监听器
+        document.getElementById('resample-btn').addEventListener('click', visualizeBootstrapSampling);
+        document.getElementById('reselect-features-btn').addEventListener('click', visualizeFeatureSelection);
+        document.getElementById('new-sample-btn').addEventListener('click', generateNewSample);
+        document.getElementById('update-forest-btn').addEventListener('click', function() {
+            visualizeForest();
+            visualizePrediction();
+        });
+        
+        // 滑块事件监听器
+        document.getElementById('tree-count-slider').addEventListener('input', updateSliderValues);
+        document.getElementById('tree-depth-slider').addEventListener('input', updateSliderValues);
+        document.getElementById('feature-ratio-slider').addEventListener('input', updateSliderValues);
+        
+        // 初始化可视化
+        document.addEventListener('DOMContentLoaded', function() {
+            visualizeFeatureDistribution();
+            visualizeBootstrapSampling();
+            visualizeFeatureSelection();
+            visualizeForest();
+            visualizePrediction();
+            visualizeFeatureImportance();
+            updateSliderValues();
+        });
+    </script>
+</body>
+</html>
